@@ -1,0 +1,5 @@
+"buzzer.obj",
+"delay.obj",
+"i2c.obj" 
+TO "buzzer" 
+RAMSIZE(256) 

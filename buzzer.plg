@@ -1,0 +1,36 @@
+<html>
+<body>
+<pre>
+<h1>µVision Build Log</h1>
+<h2>Project:</h2>
+C:\Users\phamnhat\Desktop\reload\reload\UI\UI\KeilC\buzzer.uvproj
+Project File Date:  12/01/2023
+
+<h2>Output:</h2>
+compiling buzzer.c...
+buzzer.c - 0 Error(s), 0 Warning(s).
+Build target 'Target 1'
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?INITINT?BUZZER
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?AT24C02CLEAR?BUZZER
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_DELAY10MC?DELAY
+Program Size: data=120.2 xdata=0 code=2012
+creating hex file from "buzzer"...
+"buzzer" - 0 Error(s), 3 Warning(s).
+Build target 'Target 1'
+compiling buzzer.c...
+assembling delay.SRC...
+compiling i2c.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?INITINT?BUZZER
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?AT24C02CLEAR?BUZZER
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_DELAY10MC?DELAY
+Program Size: data=120.2 xdata=0 code=2012
+creating hex file from "buzzer"...
+"buzzer" - 0 Error(s), 3 Warning(s).

@@ -1,0 +1,407 @@
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE BUZZER
+OBJECT MODULE PLACED IN buzzer.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE buzzer.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <intrins.h>
+   3          #include"i2c.h"
+   4          #define uchar unsigned char
+   5          #define uint unsigned int
+   6          sbit melody = P2^5;
+   7          
+   8          sbit LSA = P2^2;
+   9          sbit LSB = P2^3;
+  10          sbit LSC = P2^4;
+  11          sbit BTN = P3^2;
+  12          sbit temp= P1^5;
+  13          bit btnPressed = 0;
+  14          bit playMelodyEnabled = 0; 
+  15          void At24c02Write(unsigned char ,unsigned char );
+  16          unsigned char At24c02Read(unsigned char );
+  17          #define Segment P0
+  18          
+  19          int check=0;
+  20          uchar flag = 0;
+  21          uchar revData,play=1;
+  22          uchar buffer1,buffer2;
+  23          uchar updateConstRevData = 1;
+  24          
+  25          #define pitch_P         0
+  26          #define pitch_C5        64580
+  27          #define pitch_Db5       64634
+  28          #define pitch_D5        64685
+  29          #define pitch_Eb5       64732
+  30          #define pitch_E5        64778
+  31          #define pitch_F5        64820
+  32          #define pitch_Gb5       64860
+  33          #define pitch_G5        64898
+  34          #define pitch_Ab5       64934
+  35          #define pitch_A5        64968
+  36          #define pitch_Bb5       65000
+  37          #define pitch_B5        65030
+  38          #define pitch_C6        65058
+  39          #define pitch_Db6       65085
+  40          #define pitch_D6        65110
+  41          #define pitch_Eb6       65134
+  42          #define pitch_E6        65157
+  43          #define pitch_F6        65178
+  44          #define pitch_Gb6       65198
+  45          #define pitch_G6        65217
+  46          #define pitch_Ab6       65235
+  47          #define pitch_A6        65252
+  48          #define pitch_Bb6       65268
+  49          #define pitch_B6        65283
+  50          
+  51          #define MelodyPin       melody
+  52          
+  53          int seg_7, dich, tg;
+  54          
+  55          unsigned char Bai1[8] = {0x00, 0x00, 0x00, 0x06, 0x00, 0x30, 0x77, 0x7c};
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 2   
+
+  56          unsigned char Bai2[8] = {0x00, 0x00, 0x00, 0x5b, 0x00, 0x30, 0x77, 0x7c};
+  57          unsigned char Bai[8];
+  58          int dieukhien[8];
+  59          
+  60          unsigned int qtrN, qtrN_us, wholeN, wholeN_us, halfN, halfN_us, eighthN, eighthN_us,
+  61                                   sixteenN, sixteenN_us, thirtyTwoN, thirtyTwoN_us, sixtyFourN, sixtyFourN_us,
+  62                                   sixN, sixN_us, twelveN, twelveN_us, twentyFourN, twentyFourN_us;
+  63          
+  64          void Delay10MC(unsigned char);
+  65          void DigDisplay(void);
+  66          
+  67          void T2ISR(void) interrupt 5 {
+  68   1              MelodyPin = ~MelodyPin;
+  69   1              TF2 = 0;
+  70   1      }
+  71          
+  72          void MelodyTempo(int Tempo){
+  73   1              qtrN = ((60000/Tempo));
+  74   1              wholeN = qtrN*4;
+  75   1              halfN = (qtrN*2);
+  76   1              eighthN = (qtrN/2);
+  77   1              sixteenN = (qtrN/4);
+  78   1              thirtyTwoN = (qtrN/8);
+  79   1              sixtyFourN = (qtrN/16);
+  80   1              sixN = (wholeN/6);
+  81   1              twelveN = (wholeN/12);
+  82   1              twentyFourN = (wholeN/24);
+  83   1      }
+  84          
+  85          void PlayNote(const unsigned char PitchH, const unsigned char PitchL){
+  86   1              RCAP2H = PitchH;
+  87   1              RCAP2L = PitchL;
+  88   1              TH2 = PitchH;
+  89   1              TL2 = PitchL;
+  90   1              TF2 = 0;
+  91   1              TR2 = 1;
+  92   1              ET2 = 1;
+  93   1              EA = 1;
+  94   1      }
+  95          
+  96          void EndNote(void){
+  97   1              EA = 0;
+  98   1              TR2 = 0;
+  99   1              TF2 = 0;
+ 100   1              MelodyPin = 1;
+ 101   1      }
+ 102          
+ 103          void delay_ms(unsigned int ms){
+ 104   1              for(;ms>0;ms--)
+ 105   1                      {
+ 106   2                              DigDisplay();}
+ 107   1                      }
+ 108          
+ 109          void Melodyplay(const int Pitch, unsigned int interval){
+ 110   1              if(Pitch!=0)
+ 111   1                      PlayNote(Pitch >> 8, Pitch);
+ 112   1              delay_ms(interval);
+ 113   1              EndNote();
+ 114   1      }
+ 115          void initUART(void) {
+ 116   1          TMOD = 0x20;  // Timer 1, mode 2
+ 117   1          TH1 = 0xFD;   // Baud rate 9600
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 3   
+
+ 118   1          TR1 = 1;      // B?t d?u Timer 1
+ 119   1          SCON = 0x50;  // UART mode 1, 8-bit data, 1 stop bit, 1 start bit
+ 120   1          EA = 1;       // Cho phép ng?t toàn c?c
+ 121   1          ES = 1;       // Cho phép ng?t UART
+ 122   1      }
+ 123          void serial_Send (unsigned char x)
+ 124          {
+ 125   1              SBUF = x;       //nap gia tri vao s=SUBF
+ 126   1              while (TI==0);   //doi den khi data duoc gui hoan tat
+ 127   1              TI=0;    //clear co TI ve 0 de thuc hien lan gui tiep theo
+ 128   1      }
+ 129          
+ 130          void DigDisplay(void)
+ 131          {
+ 132   1              unsigned char i;
+ 133   1              unsigned int j;
+ 134   1              for(i=0;i<8;i++)
+ 135   1              {
+ 136   2                      switch(i)        //Î»Ñ¡£¬Ñ¡ÔñµãÁÁµÄÊýÂë¹Ü£¬
+ 137   2                      {
+ 138   3                              case(0):
+ 139   3                                      LSA=0;LSB=0;LSC=0; break;//ÏÔÊ¾µÚ0Î»
+ 140   3                              case(1):
+ 141   3                                      LSA=1;LSB=0;LSC=0; break;//ÏÔÊ¾µÚ1Î»
+ 142   3                              case(2):
+ 143   3                                      LSA=0;LSB=1;LSC=0; break;//ÏÔÊ¾µÚ2Î»
+ 144   3                              case(3):
+ 145   3                                      LSA=1;LSB=1;LSC=0; break;//ÏÔÊ¾µÚ3Î»
+ 146   3                              case(4):
+ 147   3                                      LSA=0;LSB=0;LSC=1; break;//ÏÔÊ¾µÚ4Î»
+ 148   3                              case(5):
+ 149   3                                      LSA=1;LSB=0;LSC=1; break;//ÏÔÊ¾µÚ5Î»
+ 150   3                              case(6):
+ 151   3                                      LSA=0;LSB=1;LSC=1; break;//ÏÔÊ¾µÚ6Î»
+ 152   3                              case(7):
+ 153   3                                      LSA=1;LSB=1;LSC=1; break;//ÏÔÊ¾µÚ7Î»    
+ 154   3                      }
+ 155   2                      Segment=Bai[i];
+ 156   2                      //·¢ËÍ¶ÎÂë
+ 157   2                      j=7;                                             //É¨Ãè¼ä¸ôÊ±¼äÉè¶¨
+ 158   2                      while(j--);     
+ 159   2                      Segment = 0x00;//ÏûÒþ
+ 160   2              }
+ 161   1      }
+ 162          
+ 163          void serial_ISR(void) interrupt 4 {
+ 164   1      
+ 165   1          if (RI){
+ 166   2                              revData = SBUF;
+ 167   2                              
+ 168   2                 if (check==0) {  buffer1=SBUF; check=1;}
+ 169   2                      else if(check == 1)  {  buffer2=SBUF; check=0; flag=1;}
+ 170   2                              RI = 0;
+ 171   2              
+ 172   2              }
+ 173   1          }
+ 174          void playReceivedNote(uchar note, uchar duration) {
+ 175   1          uint pitch = pitch_P; // m?c d?nh là không có âm thanh
+ 176   1              uint dura;
+ 177   1          switch(note) {
+ 178   2                              case 1: pitch = pitch_C5; break;        
+ 179   2                              case 2: pitch = pitch_Db5; break;       
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 4   
+
+ 180   2                              case 3: pitch = pitch_D5; break;
+ 181   2                              case 4: pitch =pitch_Eb5; break;        
+ 182   2                              case 5: pitch = pitch_E5; break;        
+ 183   2                              case 6: pitch = pitch_F5; break;
+ 184   2                              case 7: pitch =pitch_Gb5; break;
+ 185   2                              case 8: pitch =pitch_G5; break; 
+ 186   2                              case 9: pitch = pitch_Ab5; break;       
+ 187   2                              case 10: pitch =pitch_A5; break;
+ 188   2                              case 11: pitch = pitch_Bb5; break;
+ 189   2                              case 12: pitch =pitch_B5; break;
+ 190   2                              case 13: pitch =pitch_C6; break;
+ 191   2                              case 14: pitch = pitch_Db6; break;
+ 192   2                              case 15: pitch = pitch_D6; break;
+ 193   2                              case 16: pitch = pitch_Eb6; break;
+ 194   2                              case 17: pitch =pitch_E6; break;
+ 195   2                              case 18: pitch =pitch_F6; break;
+ 196   2                              case 19: pitch =pitch_Gb6 ; break;
+ 197   2                              case 20: pitch =pitch_G6        ; break;
+ 198   2                              case 21: pitch = pitch_Ab6 ; break;
+ 199   2                              case 22: pitch =pitch_A6        ; break;
+ 200   2                              case 23: pitch =pitch_Bb6 ; break;
+ 201   2                              case 24: pitch = pitch_B6 ; break;
+ 202   2      
+ 203   2              default: pitch = pitch_P; 
+ 204   2          }
+ 205   1              MelodyTempo(100);
+ 206   1              switch (duration)
+ 207   1                  {
+ 208   2                      case 1: dura=qtrN; break;
+ 209   2                      case 2: dura=wholeN; break;
+ 210   2                      case 3: dura= halfN; break;
+ 211   2                      case 4: dura=eighthN; break;
+ 212   2                      case 5: dura=sixteenN; break;
+ 213   2                      case 6: dura=thirtyTwoN; break;
+ 214   2                      case 7: dura=sixtyFourN; break;
+ 215   2                      case 8: dura=sixN; break;
+ 216   2                      case 9: dura=twelveN; break;
+ 217   2                      case 10: dura=twentyFourN; break;
+ 218   2                      default: dura=0;
+ 219   2                  }
+ 220   1           if (pitch != pitch_P) {
+ 221   2              Melodyplay(pitch,dura);
+ 222   2          }
+ 223   1                       
+ 224   1          delay_ms(duration);
+ 225   1          EndNote();
+ 226   1              temp=!temp;
+ 227   1              }
+ 228          void At24c02Write(unsigned char addr,unsigned char dat)
+ 229          {
+ 230   1              I2cStart();
+ 231   1              I2cSendByte(0xa0);//·¢ËÍÐ´Æ÷¼þµØÖ·
+ 232   1              I2cSendByte(addr);//·¢ËÍÒªÐ´ÈëÄÚ´æµØÖ·
+ 233   1              I2cSendByte(dat);       //·¢ËÍÊý¾Ý
+ 234   1              I2cStop();
+ 235   1      
+ 236   1      }
+ 237          
+ 238          uchar At24c02Read(unsigned char addr)
+ 239          {
+ 240   1              uchar num;
+ 241   1              I2cStart();
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 5   
+
+ 242   1              I2cSendByte(0xa0); //·¢ËÍÐ´Æ÷¼þµØÖ·
+ 243   1              I2cSendByte(addr); //·¢ËÍÒª¶ÁÈ¡µÄµØÖ·
+ 244   1              I2cStart();
+ 245   1              I2cSendByte(0xa1); //·¢ËÍ¶ÁÆ÷¼þµØÖ·
+ 246   1              num=I2cReadByte(); //¶ÁÈ¡Êý¾Ý
+ 247   1              I2cStop();
+ 248   1              return num;     
+ 249   1      }
+ 250          void playMelodyFromEEPROM() {
+ 251   1          unsigned int addr = 0;
+ 252   1          unsigned char storedData1;
+ 253   1              unsigned char storedData2;
+ 254   1          do {
+ 255   2                      delay_ms(50);
+ 256   2              storedData1 = At24c02Read(addr);
+ 257   2                      addr++;
+ 258   2                      storedData2 = At24c02Read(addr);
+ 259   2              playReceivedNote(storedData1, storedData2); 
+ 260   2                      EA = 1;
+ 261   2              addr++;
+ 262   2              /*if (addr >255)
+ 263   2                      {
+ 264   2              break; 
+ 265   2              }*/
+ 266   2          } while (addr<255);  
+ 267   1      }       
+ 268          void initINT(){
+ 269   1              EA = 1;     
+ 270   1          EX0 = 1;    
+ 271   1          IT0 = 1;    
+ 272   1      
+ 273   1          EX1 = 1;   
+ 274   1          IT1 = 1;    
+ 275   1      }
+ 276          void externalInterrupt0() interrupt 0
+ 277          {
+ 278   1          play=!play;
+ 279   1              //serial_Send('0');
+ 280   1      }
+ 281          
+ 282          void externalInterrupt1() interrupt 2
+ 283          {
+ 284   1              serial_Send('2');
+ 285   1          // X? lý khi có ng?t ngo?i INT1
+ 286   1      } 
+ 287          void  At24c02clear(){
+ 288   1              unsigned char Addr=0; 
+ 289   1              do {
+ 290   2               At24c02Write(Addr, 0xff);
+ 291   2               Addr++;
+ 292   2              }
+ 293   1              while  (Addr<=255);
+ 294   1      }
+ 295          void main(){
+ 296   1              int i;
+ 297   1              unsigned char eepromAddr = 0;
+ 298   1              P0 = 0x00;
+ 299   1      
+ 300   1              //initINT();
+ 301   1              initUART();
+ 302   1      //      At24c02clear();
+ 303   1         
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 6   
+
+ 304   1      /*       At24c02Write(0, 0x04);
+ 305   1               delay_ms(10);
+ 306   1         //  eepromAddr++;
+ 307   1           At24c02Write(1, 0x04);
+ 308   1               delay_ms(10);
+ 309   1          // eepromAddr++;  
+ 310   1               At24c02Write(2, 0x04);
+ 311   1               delay_ms(10);
+ 312   1         //  eepromAddr++;
+ 313   1           At24c02Write(3, 0x02);
+ 314   1               delay_ms(10);
+ 315   1          // eepromAddr++;*/          
+ 316   1              while(1)
+ 317   1              {
+ 318   2                      if( BTN == 0 ){
+ 319   3                      delay_ms(20);
+ 320   3                              while(  BTN == 0);
+ 321   3                              btnPressed=1 ; 
+ 322   3      
+ 323   3                      }
+ 324   2                      if (btnPressed==1)
+ 325   2                       {
+ 326   3                              temp=0; 
+ 327   3                 // playMelodyEnabled = !playMelodyEnabled;
+ 328   3                  //if (playMelodyEnabled) {
+ 329   3                              //temp=!temp;  
+ 330   3                  playMelodyFromEEPROM();     //}
+ 331   3                                btnPressed=0 ; 
+ 332   3               }
+ 333   2                      
+ 334   2                      if(flag ==1)
+ 335   2                              {
+ 336   3                                      if(revData == 0xff){  
+ 337   4                                                      for (i = 0; i < 8; i++)
+ 338   4                                              {
+ 339   5                                                              Bai[i] = Bai1[i];
+ 340   5                                              }
+ 341   4                                      }
+ 342   3                                      if(revData == 0xfe){  
+ 343   4                                                      for (i = 0; i < 8; i++)
+ 344   4                                              {
+ 345   5                                                              Bai[i] = Bai2[i];
+ 346   5                                              }
+ 347   4                                      }
+ 348   3      
+ 349   3                                      //ghi vao eeprom buffer1
+ 350   3                                       At24c02Write(eepromAddr, buffer1);
+ 351   3                                       delay_ms(10);
+ 352   3                       eepromAddr++;
+ 353   3                       if (eepromAddr > 255) eepromAddr = 0; 
+ 354   3                                      //ghi vao eeprom buffer2
+ 355   3                       At24c02Write(eepromAddr, buffer2);
+ 356   3                                       delay_ms(10);
+ 357   3                       eepromAddr++;
+ 358   3                       if (eepromAddr > 255) eepromAddr = 0;   
+ 359   3                                                                                                 
+ 360   3                                      if (play==1)
+ 361   3                                      {
+ 362   4                                              playReceivedNote(buffer1,buffer2);
+ 363   4      
+ 364   4                                              EA = 1;
+ 365   4                                              flag=0;
+C51 COMPILER V9.01   BUZZER                                                                12/07/2023 07:54:50 PAGE 7   
+
+ 366   4                                              serial_Send('1');
+ 367   4                                      }         
+ 368   3                                        
+ 369   3      
+ 370   3                              } 
+ 371   2              }
+ 372   1      }       
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1307    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     94      21
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

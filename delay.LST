@@ -1,0 +1,46 @@
+A51 MACRO ASSEMBLER  DELAY                                                                12/07/2023 07:54:50 PAGE     1
+
+
+MACRO ASSEMBLER A51 V8.02
+OBJECT MODULE PLACED IN delay.OBJ
+ASSEMBLER INVOKED BY: C:\Keil\C51\BIN\A51.EXE delay.SRC SET(SMALL) DEBUG EP
+
+LOC  OBJ            LINE     SOURCE
+
+                       1     NAME    DELAY
+                       2     
+                       3     ?PR?_Delay10MC?DELAY SEGMENT CODE 
+                       4      
+                       5             PUBLIC  _Delay10MC
+                       6     
+----                   7             RSEG  ?PR?_Delay10MC?DELAY
+0000                   8     _Delay10MC:
+0000 00                9             NOP
+0001 00               10             NOP
+0002 00               11             NOP
+0003 00               12             NOP
+0004 00               13             NOP
+0005 00               14             NOP
+0006 00               15             NOP
+0007 00               16             NOP
+0008 DFF6             17             DJNZ R7, _Delay10MC
+000A 22               18             RET     
+                      19     
+                      20             END
+A51 MACRO ASSEMBLER  DELAY                                                                12/07/2023 07:54:50 PAGE     2
+
+SYMBOL TABLE LISTING
+------ ----- -------
+
+
+N A M E               T Y P E  V A L U E   ATTRIBUTES
+
+?PR?_DELAY10MC?DELAY  C SEG    000BH       REL=UNIT
+DELAY. . . . . . . .  N NUMB   -----       
+_DELAY10MC . . . . .  C ADDR   0000H   R   SEG=?PR?_DELAY10MC?DELAY
+
+
+REGISTER BANK(S) USED: 0 
+
+
+ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
